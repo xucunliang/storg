@@ -1,0 +1,132 @@
+import sys
+from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import (QWidget, QPushButton, QApplication, QHBoxLayout, QVBoxLayout,QLabel, QLineEdit, QTextEdit,QMessageBox,QProgressDialog,QFileDialog,QAction,QMainWindow,QMenu)
+
+class Example(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.Init_UI()
+    def saveresult(self):
+         savef=QFileDialog.getSaveFileName(self,'保存文件','./','Text files (*.txt)')    #?
+         #print(savef)
+         #print(type(self.textbox1.toPlainText()))
+
+         with open(savef[0], 'w') as file_new:
+             file_new.write(self.textbox1.toPlainText().strip())
+             file_new.write('\n')
+             file_new.write('计算结果:一共有'+str(self.count)+'个质数.')
+
+
+
+
+
+    def primef(self):
+        try:
+            number=int(self.line1.text())
+            self.count=0 #统计计算出来的质数个数
+        except ValueError:
+            #在这里弹出提示，请输入正确的数字
+            reply_err = QMessageBox.information(self, '请检查', '请输入自然数！', QMessageBox.Ok)
+            self.textbox1.clear()
+            self.count = 0
+            self.line1.clear()
+            self.line1.setFocus()
+
+        else:
+            result=''
+            self.textbox1.clear()
+            self.textbox1.append('正在紧张的计算，请等待...')
+            self.textbox1.setFocus()
+            #加一个进度条
+            progress = QProgressDialog(self)
+            progress.setWindowTitle("请稍等")
+            progress.setLabelText("正在操作...")
+            progress.setCancelButtonText("取消")
+            progress.setMinimumDuration(300)
+            progress.setWindowModality(Qt.WindowModal)
+            progress.setRange(2, number)
+
+            #print("计算开始")
+            for each_number in range(2, number + 1):
+                divisor = each_number // 2  #从一个数的二分之一开始计算，是否是它的约数
+                if divisor == 1:   #2，3情况特殊，先把它俩单选出来，再考虑其它
+                    if result == '': #在结果前加一个空格，以免在文本框中乱换行，原因不明，加一个空格可以避免这种情况
+                        result = ' '+str(each_number)
+                        self.count = self.count+1
+                    else:
+                        result = result + ',' + str(each_number)
+                        self.count = self.count + 1
+
+                else:
+                    while each_number % divisor != 0: # 从一个数的二分之一开始除，一直除到1，如果能除尽，说明有约数，则跳出循环
+                        divisor = divisor - 1
+                        if divisor == 1:    #v如果一直除到1，才能整除，该数为质数，把它加到结果中
+                            if result == '': #在结果前加一个空格，以免在文本框中乱换行，原因不明，加一个空格可以避免这种情况
+                                result = result + str(each_number)
+                                self.count = self.count + 1
+                            else:
+                                result = result + ',' + str(each_number)
+                                self.count = self.count + 1
+
+                # 进度条进行
+                progress.setValue(each_number)
+                if progress.wasCanceled():  # 进度条如果取消
+                    QMessageBox.warning(self, "提示", "操作失败")
+                    result = ''
+                    break
+
+            self.textbox1.clear()
+            self.textbox1.append(str(result))
+            if result != '':
+                reply = QMessageBox.information(self, '计算结果', '一共有'+str(self.count)+'个质数', QMessageBox.Ok)
+
+            self.line1.setFocus()
+            self.line1.selectAll()
+
+    def keyPressEvent(self, e):
+        if e.key() ==Qt.Key_Return:#回车
+            self.primef()
+
+    def Init_UI(self):
+        self.setGeometry(300,300,400,300)
+        self.setWindowTitle('怕森工作室-----老徐')
+        self.textbox1=QTextEdit()
+        bt1 = QPushButton('计算', self)
+        lab1=QLabel('功能：求小于一个数的全部质数，并输出到下方框中。',self)
+
+        self.line1=QLineEdit('',self)
+        lab2 = QLabel('请输入一个大于2的自然数：', self)
+
+        exitAct = QAction('保存结果(&S)', self)
+        exitAct.setShortcut('Ctrl+S')
+        exitAct.setStatusTip('保存结果')
+        exitAct.triggered.connect(self.saveresult)
+
+        menubar = self.menuBar()
+        fileMenu = menubar.addMenu('文件(&F)')
+        fileMenu.addAction(exitAct)
+
+        hbox = QHBoxLayout()
+        hbox.addWidget(lab2)
+        hbox.addWidget(self.line1)
+        hbox.addWidget(bt1)
+
+        vbox = QVBoxLayout()
+        #vbox.addWidget(menubar)
+        vbox.addWidget(lab1)
+        vbox.addLayout(hbox)
+        vbox.addWidget(self.textbox1)
+        bt1.clicked.connect(self.primef)
+        #self.setLayout(vbox)
+        widget = QWidget()  #直接在QMainWindows中使用布局不好用，还是需要建一个QWidget，然后在它上面布局
+        widget.setLayout(vbox)
+        self.setCentralWidget(widget)
+
+
+
+
+        self.show()
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    ex = Example()
+    app.exit(app.exec_())
